@@ -47,21 +47,35 @@ func rawState(r Result) State {
 }
 
 // confirm applies the two-in-a-row rule: a bad check counts only when it is
-// part of a streak of at least ConfirmAfter equal bad checks. A lone bad
-// check is a blip and reads as Up.
+// part of a streak of at least ConfirmAfter bad checks in a row, slow or
+// failed alike, and a lone bad check is a blip that reads as Up. Within a
+// confirmed streak a check keeps its own state, except that a failure reads
+// as Down only when the streak holds at least ConfirmAfter failures; fewer
+// read as Degraded.
 func confirm(raw []State) []State {
 	out := make([]State, len(raw))
 	for i := 0; i < len(raw); {
-		j := i
-		for j < len(raw) && raw[j] == raw[i] {
+		if raw[i] == Up {
+			out[i] = Up
+			i++
+			continue
+		}
+		j, downs := i, 0
+		for j < len(raw) && raw[j] != Up {
+			if raw[j] == Down {
+				downs++
+			}
 			j++
 		}
-		s := raw[i]
-		if s != Up && j-i < ConfirmAfter {
-			s = Up
-		}
 		for k := i; k < j; k++ {
-			out[k] = s
+			switch {
+			case j-i < ConfirmAfter:
+				out[k] = Up
+			case raw[k] == Down && downs < ConfirmAfter:
+				out[k] = Degraded
+			default:
+				out[k] = raw[k]
+			}
 		}
 		i = j
 	}

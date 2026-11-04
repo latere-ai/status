@@ -52,7 +52,9 @@ func TestDownOnlyAfterTwoFailuresInARow(t *testing.T) {
 		{"failures apart are blips", []State{Down, Up, Down}, Up},
 		{"one slow check is not degraded", []State{Up, Degraded}, Up},
 		{"two slow checks are degraded", []State{Up, Degraded, Degraded}, Degraded},
-		{"slow then failing is not confirmed either way", []State{Degraded, Down}, Up},
+		{"slow then failing is degraded", []State{Degraded, Down}, Degraded},
+		{"failing twice within a slow streak is down", []State{Down, Degraded, Down}, Down},
+		{"a lone slow check after a failure is a blip", []State{Up, Down, Up, Degraded, Up}, Up},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
