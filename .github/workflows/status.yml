@@ -62,6 +62,10 @@ jobs:
         with:
           path: site
 
+  # No `environment:` on this job. A job bound to an environment records a
+  # GitHub deployment, and at one publish every few minutes those records
+  # flood every deployment subscriber (Slack, email). deploy-pages does not
+  # need the environment; the triggers above already limit publishing to main.
   deploy:
     needs: update
     runs-on: ubuntu-latest
@@ -69,9 +73,6 @@ jobs:
     permissions:
       pages: write # publish
       id-token: write # prove to Pages the deploy comes from this workflow
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

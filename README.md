@@ -51,7 +51,7 @@ Some conversations fail to load.
 `.github/workflows/status.yml` runs on a five minute schedule (GitHub may delay it), on manual dispatch, and on a push to `main` that changes incidents or code.
 
 1. `update` job: checks out the `history` branch beside `main`, runs `status probe` through `scripts/commit-history.sh`, then runs `status build` and uploads `site/` as the Pages artifact. It has `contents: write` only.
-2. `deploy` job: publishes the artifact with `actions/deploy-pages`. It has `pages: write` and `id-token: write` only.
+2. `deploy` job: publishes the artifact with `actions/deploy-pages`. It has `pages: write` and `id-token: write` only, and no `environment:`, so a publish every few minutes does not record a GitHub deployment or notify deployment subscribers.
 
 History is one file per UTC day, `YYYY-MM-DD.json`, on the `history` branch, so `main` stays clean. `probe` drops files older than 90 days. If a push is rejected because another run pushed first, `commit-history.sh` rebases and tries again. If the rebase conflicts, it takes the remote branch as it is and probes again. It never force-pushes. The branch's git history still holds old days, so it grows slowly; squash it by hand if it ever matters.
 
