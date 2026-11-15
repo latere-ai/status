@@ -22,6 +22,8 @@ File delivery (`cdn.latere.ai`) is not checked: it has no public object that is 
 
 Two checks in a row must fail before a service shows as down. A check that passes but takes longer than 3 seconds is slow, and two slow checks in a row show a service as degraded. A single bad check is a blip and is not counted. A day's bar is red when uptime was under 99%, amber when it had any confirmed down or slow checks, and green otherwise.
 
+When a service fails two checks in a row, the workflow opens one GitHub issue labeled `outage` in this repository, so everyone watching the repository is notified. It comments the recovery time and outage length and closes the issue when the service answers again. A service never has two open issues, and a failure to reach GitHub does not stop the page from publishing.
+
 ## Add a service
 
 Add one line to `Services` in `internal/status/services.go`: an `ID` (stable, never renamed, it keys the history), a `Name` for the page, the `URL`, the `Expect`ed status code, and an optional `Contains` body check. Use only endpoints that answer without credentials. Run `go test ./...`.
@@ -50,7 +52,8 @@ Some conversations fail to load.
 
 `.github/workflows/status.yml` runs on a five minute schedule (GitHub may delay it), on manual dispatch, and on a push to `main` that changes incidents or code.
 
-1. `update` job: checks out the `history` branch beside `main`, runs `status probe` through `scripts/commit-history.sh`, then runs `status build` and uploads `site/` as the Pages artifact. It has `contents: write` only.
+1. `update` job: checks out the `history` branch beside `main`, runs `status probe` through `scripts/commit-history.sh`, then runs `status build` and uploads `site/` as the Pages artifact. It has `contents: write` and `issues: write` only.
+`status notify` runs last in this job, with `issues: write`, and reads the open `outage` issues to decide what to open or close. A step failure there is reported and ignored. `status notify -replay 168h -history history` prints what it would have done over the last week without calling GitHub.
 2. `deploy` job: publishes the artifact with `actions/deploy-pages`. It has `pages: write` and `id-token: write` only, and no `environment:`, so a publish every few minutes does not record a GitHub deployment or notify deployment subscribers.
 
 History is one file per UTC day, `YYYY-MM-DD.json`, on the `history` branch, so `main` stays clean. `probe` drops files older than 90 days. If a push is rejected because another run pushed first, `commit-history.sh` rebases and tries again. If the rebase conflicts, it takes the remote branch as it is and probes again. It never force-pushes. The branch's git history still holds old days, so it grows slowly; squash it by hand if it ever matters.

@@ -32,6 +32,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write # push the history branch
+      issues: write # open and close outage issues
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -61,6 +62,15 @@ jobs:
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site
+
+      # After the history is recorded and the page artifact is uploaded, so
+      # a failure here, an API outage or a rate limit, never stops the page
+      # from publishing. It fails its own step and nothing else.
+      - name: Open and close outage issues
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: '"$RUNNER_TEMP/status" notify -history history'
 
   # No `environment:` on this job. A job bound to an environment records a
   # GitHub deployment, and at one publish every few minutes those records
